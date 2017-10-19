@@ -24,7 +24,7 @@ class ViewController: UIViewController {
         }
         if !brain.resultIsPending { // пример 5+6=7 будет показано “… “ ( 7 на display)
             sequence.text = "..."
-        }
+       }
     }
     private var displayValue : Double? { // разрешение предположения профессора (всегда ли строку цифрового ввода можно интерпретировать как Double)
         get {
@@ -41,10 +41,10 @@ class ViewController: UIViewController {
     private var brain = CalculatorBrain()
     @IBAction func performOperation(_ sender: UIButton) { // выполнить операцию
         if userInTheMiddleOfTyping { // Если в середине ввода числа, то при вводе операции
+            userInTheMiddleOfTyping = false // зафиксировать окончание ввода операнда
             if displayValue != nil {
                 brain.setOperand( displayValue!) //  установить операнд и описание операции
             }
-            userInTheMiddleOfTyping = false // зафиксировать окончание ввода операнда
         }
         if let mathematicalSymbol = sender.currentTitle { // символ операции определён
             brain.performOperation(mathematicalSymbol) // передать для вычисления в Модель
@@ -52,21 +52,22 @@ class ViewController: UIViewController {
         displayValue = brain.accumulator.value // получение результата вычислений
         sequence.text = brain.accumulator.description + (brain.resultIsPending ? "..." : "=")
     }
-    @IBAction func initialization(_ sender: UIButton) {
-        display.text = "0" // начальное значение дисплея
+    @IBAction func reset(_ sender: UIButton) {
+        displayValue = 0
         userInTheMiddleOfTyping = false
         sequence.text = String() // пустая строка ленты
-        brain.initialization()
+        brain.reset ()
     }
     @IBAction func backSpace(_ sender: UIButton) {
         if display.text != nil && userInTheMiddleOfTyping {
             if display.text!.characters.count > 1 { // количество символов строки дисплея
                 display.text!.characters.removeLast() // стирает крайний правый, последний из введенных, символ цифры или точки
             } else {
-                display.text = "0"
+                displayValue = 0
                 userInTheMiddleOfTyping = false
             }
         }
     }
 }
+
 
