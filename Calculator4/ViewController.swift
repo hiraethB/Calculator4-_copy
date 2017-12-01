@@ -8,65 +8,110 @@
 
 import UIKit
 class ViewController: UIViewController {
+    
     @IBOutlet weak var display: UILabel!
+    
     @IBOutlet weak var sequence: UILabel!
-    private var userInTheMiddleOfTyping = false // флаг начатого и незаконченного цифрового ввода
+    
+    @IBOutlet weak var radDeg: UILabel!
+    @IBOutlet weak var sin: UIButton!
+    @IBOutlet weak var cos: UIButton!
+    @IBOutlet weak var tan: UIButton!
+    
+    @IBOutlet weak var degreese: UIButton!
+    @IBAction func degRad(_ sender: UIButton) {
+        if sender.currentTitle != "Deg" {
+            sender.setTitle("Deg", for: .normal)
+            radDeg.text = "  rad"
+        } else {
+            sender.setTitle("rad", for: .normal)
+            radDeg.text = ""
+        }
+    }
+    
+    private var brain = CalculatorBrain()
+    private var inverse = false
+    @IBAction func inverseFunction() {
+        inverse = !inverse
+        if inverse {
+            brain.performOperation("Inv")
+            tan.setTitle( "atan", for: .normal)
+            sin.setTitle( "asin", for: .normal)
+            cos.setTitle( "acos", for: .normal)
+        } else {
+            brain.performOperation("Dir")
+            tan.setTitle( "tan", for: .normal)
+            sin.setTitle( "sin", for: .normal)
+            cos.setTitle( "cos", for: .normal)
+        }
+    }
+    
+    let decimalSeparator = numberFormatter.decimalSeparator!
+    @IBOutlet weak var point: UIButton! {
+        didSet {
+            point.setTitle( numberFormatter.decimalSeparator, for: .normal)
+        }
+    }
+   
+    private var userInTheMiddleOfTyping = false
     @IBAction func touchDigit(_ sender: UIButton) {
         let digit = sender.currentTitle!
-        if userInTheMiddleOfTyping {
+        if !userInTheMiddleOfTyping {
+            display.text = digit != decimalSeparator ? digit :  "0" + digit
+            userInTheMiddleOfTyping = true
+        } else {
             let textCurrentlyInDisplay = display.text!
-            if !(textCurrentlyInDisplay.contains (".")) || (digit != ".") {
+            if !textCurrentlyInDisplay.contains( decimalSeparator) || digit != decimalSeparator {
                 display.text = textCurrentlyInDisplay + digit
             }
-        } else { // это первый вводимый символ с цифровой клавиатуры
-            display.text = digit
-            userInTheMiddleOfTyping = true
         }
-        if !brain.resultIsPending { // пример 5+6=7 будет показано “… “ ( 7 на display)
+        if !brain.resultIsPending { //5+6=7 “… “
             sequence.text = "..."
-       }
+        }
     }
-    private var displayValue : Double? { // разрешение предположения профессора (всегда ли строку цифрового ввода можно интерпретировать как Double)
-        get {
-            if display.text != nil { // введено число ?
-                return Double (display.text!) // вернуть Double
+    
+    @IBAction func backSpace() {
+        if display.text != nil && userInTheMiddleOfTyping {
+            guard display.text!.count <= 1  else {
+                display.text!.removeLast()
+                return
             }
-                return nil // не число, вернуть опционалу "not set"
+            displayValue = 0
+            userInTheMiddleOfTyping = false
+        }
+    }
+    
+    private var displayValue : Double? {
+        get {
+            if let text = display.text, let value = numberFormatter.number( from: text) as? Double
+            { return value }
+            return nil
         } set {
             if let new = newValue {
                 display.text = numberFormatter.string(from: NSNumber( value: new))
             }
-        }
-    }
-    private var brain = CalculatorBrain()
-    @IBAction func performOperation(_ sender: UIButton) { // выполнить операцию
-        if userInTheMiddleOfTyping { // Если в середине ввода числа, то при вводе операции
-            userInTheMiddleOfTyping = false // зафиксировать окончание ввода операнда
-            if displayValue != nil {
-                brain.setOperand( displayValue!) //  установить операнд и описание операции
+            if let description = brain.description {
+                sequence.text = description + (brain.resultIsPending ? "..." : "=")
             }
         }
-        if let mathematicalSymbol = sender.currentTitle { // символ операции определён
-            brain.performOperation(mathematicalSymbol) // передать для вычисления в Модель
-        }
-        displayValue = brain.accumulator.value // получение результата вычислений
-        sequence.text = brain.accumulator.description + (brain.resultIsPending ? "..." : "=")
     }
-    @IBAction func reset(_ sender: UIButton) {
+    //===================================================
+    @IBAction func performOperation(_ sender: UIButton) {
+        if userInTheMiddleOfTyping {
+            userInTheMiddleOfTyping = false
+            if displayValue != nil {
+                brain.setOperand( displayValue!)
+            }
+        }
+        brain.performOperation(sender.currentTitle ?? "")
+        displayValue = brain.result
+    }
+    
+    @IBAction func reset() {
         displayValue = 0
         userInTheMiddleOfTyping = false
-        sequence.text = String() // пустая строка ленты
-        brain.reset ()
-    }
-    @IBAction func backSpace(_ sender: UIButton) {
-        if display.text != nil && userInTheMiddleOfTyping {
-            if display.text!.characters.count > 1 { // количество символов строки дисплея
-                display.text!.characters.removeLast() // стирает крайний правый, последний из введенных, символ цифры или точки
-            } else {
-                displayValue = 0
-                userInTheMiddleOfTyping = false
-            }
-        }
+        sequence.text = String()
+        brain.reset()
     }
 }
 
